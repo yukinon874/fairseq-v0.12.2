@@ -51,6 +51,7 @@ def add_user_args(parser):
     parser.add_argument("--fix-decoder", default=False, action="store_true", help="fix decoder embedding")
     parser.add_argument("--scale-encoder", default=False, action="store_true", help="scale encoder input embedding")
     parser.add_argument("--scale-decoder", default=False, action="store_true", help="scale decoder input embedding")
+    parser.add_argument("--reverse-scale", default=False, action="store_true", help="scale positional embedding")
 
 def get_generation_parser(interactive=False, default_task="translation"):
     parser = get_parser("Generation", default_task)

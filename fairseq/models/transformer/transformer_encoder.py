@@ -64,6 +64,10 @@ class TransformerEncoderBase(FairseqEncoder):
 
         self.embed_scale = 1.0 if cfg.no_scale_embedding else math.sqrt(embed_dim)
 
+        self.reverse_scale = False
+        if not cfg.no_scale_embedding and cfg.reverse_scale:
+            self.reverse_scale = True
+
         self.encoder_scale = None
 
         if cfg.scale_encoder:
@@ -127,13 +131,22 @@ class TransformerEncoderBase(FairseqEncoder):
         # embed tokens and positions
         if token_embedding is None:
             token_embedding = self.embed_tokens(src_tokens)
-        x = embed = self.embed_scale * token_embedding
+
+        if self.reverse_scale:
+            x = embed = token_embedding
+        else:
+            x = embed = self.embed_scale * token_embedding
+
 
         if self.encoder_scale:
             x = embed = self.encoder_scale * embed
 
         if self.embed_positions is not None:
-            x = embed + self.embed_positions(src_tokens)
+            if self.reverse_scale:
+                x = embed + self.embed_positions(src_tokens) / self.embed_scale
+            else:
+                x = embed + self.embed_positions(src_tokens)
+
         if self.layernorm_embedding is not None:
             x = self.layernorm_embedding(x)
         x = self.dropout_module(x)

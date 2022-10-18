@@ -80,6 +80,10 @@ class TransformerDecoderBase(FairseqIncrementalDecoder):
 
         self.embed_scale = 1.0 if cfg.no_scale_embedding else math.sqrt(embed_dim)
 
+        self.reverse_scale = False
+        if not cfg.no_scale_embedding and cfg.reverse_scale:
+            self.reverse_scale = True
+
         self.decoder_scale = None
         if cfg.scale_decoder:
             self.decoder_scale = nn.Parameter(torch.ones(1), requires_grad=True)
@@ -310,7 +314,11 @@ class TransformerDecoderBase(FairseqIncrementalDecoder):
         # Prevent torchscript exporting issue for dynamic quant embedding
         prev_output_tokens = prev_output_tokens.contiguous()
         # embed tokens and positions
-        x = self.embed_scale * self.embed_tokens(prev_output_tokens)
+
+        if self.reverse_scale:
+            x = self.embed_tokens(prev_output_tokens)
+        else:
+            x = self.embed_scale * self.embed_tokens(prev_output_tokens)
 
         if self.decoder_scale:
             x = x * self.decoder_scale
@@ -322,7 +330,11 @@ class TransformerDecoderBase(FairseqIncrementalDecoder):
             x = self.project_in_dim(x)
 
         if positions is not None:
-            x += positions
+            if self.reverse_scale:
+                x += positions / self.embed_scale
+            else:
+                x += positions
+
 
         if self.layernorm_embedding is not None:
             x = self.layernorm_embedding(x)
